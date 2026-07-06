@@ -1,0 +1,65 @@
+# Cloud Build: build image, push to Artifact Registry, deploy to Cloud Run.
+#
+# Pré-requisitos (uma vez no GCP):
+#   1. Ativar APIs: Cloud Build, Artifact Registry, Cloud Run, Secret Manager
+#   2. Criar repositório Docker:
+#        gcloud artifacts repositories create echo \
+#          --repository-format=docker \
+#          --location=southamerica-east1
+#   3. Dar permissão ao Cloud Build para deploy no Cloud Run (conta de serviço do projeto)
+#   4. Configurar variáveis de ambiente / secrets no Cloud Run (ver comentário no step Deploy)
+#   5. Criar trigger apontando para este repositório (branch main) com este cloudbuild.yaml
+#
+# Variáveis de ambiente obrigatórias no serviço Cloud Run:
+#   ADMIN_EMAIL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OPENAI_API_KEY,
+#   SESSION_SECRET, APP_URL (URL pública do Cloud Run, ex: https://echo-web-xxx.run.app)
+
+substitutions:
+  _AR_HOSTNAME: southamerica-east1-docker.pkg.dev
+  _DEPLOY_REGION: southamerica-east1
+  _AR_REPO: echo
+  _SERVICE_NAME: echo-web
+
+steps:
+  - id: Build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}
+      - -t
+      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:latest
+      - .
+
+  - id: Push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}
+
+  - id: Deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image=${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}
+      - --region=${_DEPLOY_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --port=8080
+      - --memory=512Mi
+      - --cpu=1
+      - --min-instances=0
+      - --max-instances=5
+      - --execution-environment=gen2
+      - --set-env-vars=NODE_ENV=production
+
+images:
+  - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}
+  - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
