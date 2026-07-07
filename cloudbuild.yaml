@@ -19,6 +19,14 @@ substitutions:
   _DEPLOY_REGION: southamerica-east1
   _AR_REPO: echo
   _SERVICE_NAME: echo-web
+  _ADMIN_EMAIL: lucastere10@gmail.com
+  _GOOGLE_CLIENT_ID: 399951936554-p11610v94n935vo6fpk4unbtv51sov5c.apps.googleusercontent.com
+  _APP_URL: http://localhost:3000
+  _MAX_FILES_PER_UPLOAD: 10
+  _INVITE_EXPIRATION_HOURS: 24
+  _MAX_FILE_SIZE_MB: 25
+  _MAX_CONCURRENT_JOBS: 2
+  _RATE_LIMIT_PER_MINUTE: 30
 
 steps:
   - id: Build
@@ -55,7 +63,7 @@ steps:
       - --min-instances=0
       - --max-instances=5
       - --execution-environment=gen2
-      - --set-env-vars=NODE_ENV=production
+      - --set-env-vars=NODE_ENV=production,ADMIN_EMAIL=${_ADMIN_EMAIL},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET},OPENAI_API_KEY=${_OPENAI_API_KEY},SESSION_SECRET=${_SESSION_SECRET},APP_URL=${_APP_URL},MAX_FILES_PER_UPLOAD=${_MAX_FILES_PER_UPLOAD},INVITE_EXPIRATION_HOURS=${_INVITE_EXPIRATION_HOURS},MAX_FILE_SIZE_MB=${_MAX_FILE_SIZE_MB},MAX_CONCURRENT_JOBS=${_MAX_CONCURRENT_JOBS},RATE_LIMIT_PER_MINUTE=${_RATE_LIMIT_PER_MINUTE}  
 
 images:
   - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}
