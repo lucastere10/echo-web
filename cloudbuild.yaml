@@ -23,13 +23,13 @@
 #   SESSION_SECRET, APP_URL (URL pública do Cloud Run, ex: https://echo-web-xxx.run.app)
 
 substitutions:
-  _AR_HOSTNAME: southamerica-east1-docker.pkg.dev
-  _DEPLOY_REGION: southamerica-east1
+  _AR_HOSTNAME: us-central1-docker.pkg.dev
+  _DEPLOY_REGION: us-central1
   _AR_REPO: echo
   _SERVICE_NAME: echo-web
   _ADMIN_EMAIL: lucastere10@gmail.com
   _GOOGLE_CLIENT_ID: 399951936554-p11610v94n935vo6fpk4unbtv51sov5c.apps.googleusercontent.com
-  _APP_URL: https://echo-web-REPLACE.run.app
+  _APP_URL: https://echo-web-399951936554.us-central1.run.app
   _SECRET_GOOGLE_CLIENT_SECRET: echo-web-google-client-secret
   _SECRET_OPENAI_API_KEY: echo-web-openai-api-key
   _SECRET_SESSION_SECRET: echo-web-session-secret
