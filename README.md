@@ -123,7 +123,7 @@ docker build -t echo-web .
 docker run -p 8080:8080 --env-file .env echo-web
 ```
 
-O `Dockerfile` usa multi-stage build (Bun para compilar, Node Alpine para executar).
+O `Dockerfile` usa multi-stage build: Bun instala dependências, Node compila e executa (evita adapter Bun.serve no Nitro).
 
 ### Deploy no GCP (Cloud Build + Cloud Run)
 

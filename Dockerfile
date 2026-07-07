@@ -1,14 +1,22 @@
 # syntax=docker/dockerfile:1
 
-FROM oven/bun:1-alpine AS builder
+# Install deps with Bun (fast, lockfile-compatible).
+FROM oven/bun:1-alpine AS deps
 
 WORKDIR /app
 
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
+# Build with Node so Nitro/srvx bundles the Node server adapter (not Bun.serve).
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json bun.lock ./
 COPY . .
-RUN bun run build
+RUN npm run build
 
 FROM node:22-alpine AS runner
 

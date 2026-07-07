@@ -7,8 +7,16 @@
 #          --repository-format=docker \
 #          --location=southamerica-east1
 #   3. Dar permissão ao Cloud Build para deploy no Cloud Run (conta de serviço do projeto)
-#   4. Configurar variáveis de ambiente / secrets no Cloud Run (ver comentário no step Deploy)
-#   5. Criar trigger apontando para este repositório (branch main) com este cloudbuild.yaml
+#   4. Criar secrets no Secret Manager (uma vez):
+#        echo -n "..." | gcloud secrets create echo-web-session-secret --data-file=-
+#        echo -n "..." | gcloud secrets create echo-web-google-client-secret --data-file=-
+#        echo -n "..." | gcloud secrets create echo-web-openai-api-key --data-file=-
+#      Conceder acesso ao Cloud Run:
+#        gcloud secrets add-iam-policy-binding echo-web-session-secret \
+#          --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+#          --role="roles/secretmanager.secretAccessor"
+#   5. Configurar variáveis de ambiente / secrets no Cloud Run (ver comentário no step Deploy)
+#   6. Criar trigger apontando para este repositório (branch main) com este cloudbuild.yaml
 #
 # Variáveis de ambiente obrigatórias no serviço Cloud Run:
 #   ADMIN_EMAIL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OPENAI_API_KEY,
@@ -21,7 +29,10 @@ substitutions:
   _SERVICE_NAME: echo-web
   _ADMIN_EMAIL: lucastere10@gmail.com
   _GOOGLE_CLIENT_ID: 399951936554-p11610v94n935vo6fpk4unbtv51sov5c.apps.googleusercontent.com
-  _APP_URL: http://localhost:3000
+  _APP_URL: https://echo-web-REPLACE.run.app
+  _SECRET_GOOGLE_CLIENT_SECRET: echo-web-google-client-secret
+  _SECRET_OPENAI_API_KEY: echo-web-openai-api-key
+  _SECRET_SESSION_SECRET: echo-web-session-secret
   _MAX_FILES_PER_UPLOAD: 10
   _INVITE_EXPIRATION_HOURS: 24
   _MAX_FILE_SIZE_MB: 25
@@ -63,7 +74,8 @@ steps:
       - --min-instances=0
       - --max-instances=5
       - --execution-environment=gen2
-      - --set-env-vars=NODE_ENV=production,ADMIN_EMAIL=${_ADMIN_EMAIL},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},GOOGLE_CLIENT_SECRET=${_GOOGLE_CLIENT_SECRET},OPENAI_API_KEY=${_OPENAI_API_KEY},SESSION_SECRET=${_SESSION_SECRET},APP_URL=${_APP_URL},MAX_FILES_PER_UPLOAD=${_MAX_FILES_PER_UPLOAD},INVITE_EXPIRATION_HOURS=${_INVITE_EXPIRATION_HOURS},MAX_FILE_SIZE_MB=${_MAX_FILE_SIZE_MB},MAX_CONCURRENT_JOBS=${_MAX_CONCURRENT_JOBS},RATE_LIMIT_PER_MINUTE=${_RATE_LIMIT_PER_MINUTE}  
+      - --update-env-vars=NODE_ENV=production,ADMIN_EMAIL=${_ADMIN_EMAIL},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},APP_URL=${_APP_URL},MAX_FILES_PER_UPLOAD=${_MAX_FILES_PER_UPLOAD},INVITE_EXPIRATION_HOURS=${_INVITE_EXPIRATION_HOURS},MAX_FILE_SIZE_MB=${_MAX_FILE_SIZE_MB},MAX_CONCURRENT_JOBS=${_MAX_CONCURRENT_JOBS},RATE_LIMIT_PER_MINUTE=${_RATE_LIMIT_PER_MINUTE}
+      - --set-secrets=GOOGLE_CLIENT_SECRET=${_SECRET_GOOGLE_CLIENT_SECRET}:latest,OPENAI_API_KEY=${_SECRET_OPENAI_API_KEY}:latest,SESSION_SECRET=${_SECRET_SESSION_SECRET}:latest
 
 images:
   - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}
