@@ -30,9 +30,9 @@ substitutions:
   _ADMIN_EMAIL: lucastere10@gmail.com
   _GOOGLE_CLIENT_ID: 399951936554-p11610v94n935vo6fpk4unbtv51sov5c.apps.googleusercontent.com
   _APP_URL: https://echo-web-399951936554.us-central1.run.app
-  _SECRET_GOOGLE_CLIENT_SECRET: echo-web-google-client-secret
-  _SECRET_OPENAI_API_KEY: echo-web-openai-api-key
-  _SECRET_SESSION_SECRET: echo-web-session-secret
+  _SECRET_GOOGLE_CLIENT_SECRET: ECHO_GOOGLE_CLIENT_SECRET
+  _SECRET_OPENAI_API_KEY: PASSANOTA_OPENAI_API_KEY
+  _SECRET_SESSION_SECRET: ECO_SESSION_SECRET
   _MAX_FILES_PER_UPLOAD: "10"
   _INVITE_EXPIRATION_HOURS: "24"
   _MAX_FILE_SIZE_MB: "25"
