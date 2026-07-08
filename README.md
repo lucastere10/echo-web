@@ -1,6 +1,6 @@
 # Echo
 
-Aplicação web monolítica para transcrição de áudio com IA. Envie arquivos de áudio, transcreva com o Whisper da OpenAI e copie ou baixe o resultado em TXT ou Markdown.
+Aplicação web monolítica para transcrição de áudio e vídeo com IA. Envie arquivos de reunião (MP4, etc.), transcreva com o Whisper da OpenAI e copie ou baixe o resultado em TXT ou Markdown.
 
 ## Stack
 
@@ -62,7 +62,7 @@ Variáveis opcionais (com defaults):
 |----------|---------|-----------|
 | `MAX_FILES_PER_UPLOAD` | `10` | Máximo de arquivos por envio |
 | `INVITE_EXPIRATION_HOURS` | `24` | Validade do convite em horas |
-| `MAX_FILE_SIZE_MB` | `25` | Tamanho máximo por arquivo |
+| `MAX_FILE_SIZE_MB` | `150` | Tamanho máximo por arquivo no upload |
 | `MAX_CONCURRENT_JOBS` | `2` | Transcrições simultâneas no servidor |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Limite de requisições por IP/minuto |
 
@@ -95,13 +95,22 @@ A aplicação sobe em `http://localhost:3000`.
 | `bun run lint` | ESLint |
 | `bun run format` | Prettier + ESLint fix |
 
-## Formatos de áudio suportados
+## Formatos suportados
 
-`mp3`, `wav`, `m4a`, `mp4`, `webm`, `ogg`
+`mp3`, `wav`, `m4a`, `mp4`, `webm`, `ogg` (áudio e vídeo)
+
+Vídeos (ex.: MP4 de reunião) têm o áudio extraído no servidor antes da transcrição. A API Whisper aceita no máximo **25 MB por requisição**; arquivos maiores são comprimidos e fatiados automaticamente com **ffmpeg**.
+
+### ffmpeg
+
+Necessário no servidor (e localmente, para arquivos grandes ou vídeo):
+
+- **Docker/Cloud Run:** já incluído na imagem de produção
+- **Local:** instale [ffmpeg](https://ffmpeg.org/) e garanta que `ffmpeg` e `ffprobe` estejam no `PATH`
 
 ## Privacidade
 
-Os arquivos de áudio ficam apenas em memória durante o processamento e **não são gravados em disco**.
+Os arquivos enviados **não são persistidos** após o processamento. Durante a transcrição, o servidor pode gravar cópias temporárias em disco (`/tmp`) para conversão com ffmpeg; esses arquivos são removidos ao final.
 
 Convites e solicitações de acesso são persistidos em `data/` (JSON).
 

@@ -25,7 +25,7 @@ export const env = Object.freeze({
   APP_URL: required('APP_URL').replace(/\/$/, ''),
   MAX_FILES_PER_UPLOAD: optionalInt('MAX_FILES_PER_UPLOAD', 10),
   INVITE_EXPIRATION_HOURS: optionalInt('INVITE_EXPIRATION_HOURS', 24),
-  MAX_FILE_SIZE_MB: optionalInt('MAX_FILE_SIZE_MB', 25),
+  MAX_FILE_SIZE_MB: optionalInt('MAX_FILE_SIZE_MB', 150),
   MAX_CONCURRENT_JOBS: optionalInt('MAX_CONCURRENT_JOBS', 2),
   RATE_LIMIT_PER_MINUTE: optionalInt('RATE_LIMIT_PER_MINUTE', 30),
 })

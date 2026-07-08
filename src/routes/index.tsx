@@ -4,6 +4,13 @@ import GoogleIcon from '#/components/GoogleIcon'
 import QueuePanel from '#/components/QueuePanel'
 import UploadZone from '#/components/UploadZone'
 import { getSessionLabel } from '#/lib/auth/session'
+import {
+  FILE_ACCEPT,
+  SUPPORTED_EXTENSIONS,
+  SUPPORTED_FORMATS_LABEL,
+  getFileExtension,
+  isVideoFile,
+} from '#/lib/media'
 import { getUploadConfig } from '#/server/upload'
 
 export const Route = createFileRoute('/')({
@@ -21,23 +28,29 @@ type FileItem = {
   error?: string
 }
 
-const SUPPORTED_EXTENSIONS = ['mp3', 'wav', 'm4a', 'mp4', 'webm', 'ogg']
-
-function getExtension(name: string): string {
-  const parts = name.toLowerCase().split('.')
-  return parts.length > 1 ? (parts.at(-1) ?? '') : ''
-}
+const SUPPORTED_EXTENSION_SET = new Set<string>(SUPPORTED_EXTENSIONS)
 
 async function readDuration(file: File): Promise<number | undefined> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file)
-    const audio = new Audio(url)
-    audio.addEventListener('loadedmetadata', () => {
-      URL.revokeObjectURL(url)
-      resolve(Number.isFinite(audio.duration) ? audio.duration : undefined)
+    const useVideo = isVideoFile(file.name, file.type)
+    const media = useVideo
+      ? document.createElement('video')
+      : new Audio(url)
+
+    if (useVideo) {
+      ;(media as HTMLVideoElement).src = url
+      ;(media as HTMLVideoElement).preload = 'metadata'
+    }
+
+    const cleanup = () => URL.revokeObjectURL(url)
+
+    media.addEventListener('loadedmetadata', () => {
+      cleanup()
+      resolve(Number.isFinite(media.duration) ? media.duration : undefined)
     })
-    audio.addEventListener('error', () => {
-      URL.revokeObjectURL(url)
+    media.addEventListener('error', () => {
+      cleanup()
       resolve(undefined)
     })
   })
@@ -205,10 +218,10 @@ function HomePage() {
     const accepted: FileItem[] = []
 
     for (const file of files) {
-      const extension = getExtension(file.name)
-      if (!SUPPORTED_EXTENSIONS.includes(extension)) {
+      const extension = getFileExtension(file.name)
+      if (!SUPPORTED_EXTENSION_SET.has(extension)) {
         setValidationMessage(
-          `${file.name} não é suportado. Use mp3, wav, m4a, mp4, webm ou ogg.`,
+          `${file.name} não é suportado. Use ${SUPPORTED_FORMATS_LABEL}.`,
         )
         continue
       }
@@ -300,7 +313,7 @@ function HomePage() {
       <section className="mb-8 text-center">
         <p className="island-kicker mb-3">Echo</p>
         <h1 className="display-title text-4xl text-[var(--text)] sm:text-5xl">
-          Transcrever áudio
+          Transcrever áudio ou vídeo
         </h1>
       </section>
 
