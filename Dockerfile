@@ -27,7 +27,8 @@ ENV HOST=0.0.0.0
 ENV PORT=8080
 
 RUN addgroup --system --gid 1001 nodejs \
-  && adduser --system --uid 1001 --ingroup nodejs nodejs
+  && adduser --system --uid 1001 --ingroup nodejs nodejs \
+  && apk add --no-cache ffmpeg
 
 COPY --from=builder /app/.output ./
 

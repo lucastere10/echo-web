@@ -1,41 +1,30 @@
-# Cloud Build: build image, push to Artifact Registry, deploy to Cloud Run.
-#
-# Pré-requisitos (uma vez no GCP):
-#   1. Ativar APIs: Cloud Build, Artifact Registry, Cloud Run, Secret Manager
-#   2. Criar repositório Docker:
-#        gcloud artifacts repositories create echo \
-#          --repository-format=docker \
-#          --location=southamerica-east1
-#   3. Dar permissão ao Cloud Build para deploy no Cloud Run (conta de serviço do projeto)
-#   4. Criar secrets no Secret Manager (uma vez):
-#        echo -n "..." | gcloud secrets create echo-web-session-secret --data-file=-
-#        echo -n "..." | gcloud secrets create echo-web-google-client-secret --data-file=-
-#        echo -n "..." | gcloud secrets create echo-web-openai-api-key --data-file=-
-#      Conceder acesso ao Cloud Run:
-#        gcloud secrets add-iam-policy-binding echo-web-session-secret \
-#          --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-#          --role="roles/secretmanager.secretAccessor"
-#   5. Configurar variáveis de ambiente / secrets no Cloud Run (ver comentário no step Deploy)
-#   6. Criar trigger apontando para este repositório (branch main) com este cloudbuild.yaml
-#
-# Variáveis de ambiente obrigatórias no serviço Cloud Run:
-#   ADMIN_EMAIL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OPENAI_API_KEY,
-#   SESSION_SECRET, APP_URL (URL pública do Cloud Run, ex: https://echo-web-xxx.run.app)
-
 substitutions:
+  # Infra
   _AR_HOSTNAME: us-central1-docker.pkg.dev
   _DEPLOY_REGION: us-central1
-  _AR_REPO: cloud-run-source-deploy
+  _AR_REPO: echo
   _SERVICE_NAME: echo-web
-  _ADMIN_EMAIL: lucastere10@gmail.com
+  _RUNTIME_SA: echo-sa
+  _IMAGE: ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}
+  _CONCURRENCY: "10"
+  _LABEL_APP: echo
+  _LABEL_ENV: production
+  _LABEL_OWNER: lucas
+
+  # OAuth
   _GOOGLE_CLIENT_ID: 399951936554-p11610v94n935vo6fpk4unbtv51sov5c.apps.googleusercontent.com
+  _SECRET_GOOGLE_CLIENT_SECRET: echo-google-client-secret
+
+  # Secrets
+  _SECRET_OPENAI_API_KEY: echo-openai-api-key
+  _SECRET_SESSION_SECRET: echo-session-secret
+
+  # Application
+  _ADMIN_EMAIL: lucastere10@gmail.com
   _APP_URL: https://echo-web-399951936554.us-central1.run.app
-  _SECRET_GOOGLE_CLIENT_SECRET: ECHO_GOOGLE_CLIENT_SECRET
-  _SECRET_OPENAI_API_KEY: PASSANOTA_OPENAI_API_KEY
-  _SECRET_SESSION_SECRET: ECO_SESSION_SECRET
   _MAX_FILES_PER_UPLOAD: "10"
   _INVITE_EXPIRATION_HOURS: "24"
-  _MAX_FILE_SIZE_MB: "25"
+  _MAX_FILE_SIZE_MB: "150"
   _MAX_CONCURRENT_JOBS: "2"
   _RATE_LIMIT_PER_MINUTE: "30"
 
@@ -45,9 +34,9 @@ steps:
     args:
       - build
       - -t
-      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}
+      - ${_IMAGE}:${COMMIT_SHA}
       - -t
-      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:latest
+      - ${_IMAGE}:latest
       - .
 
   - id: Push
@@ -55,7 +44,7 @@ steps:
     args:
       - push
       - --all-tags
-      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}
+      - ${_IMAGE}
 
   - id: Deploy
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -64,22 +53,30 @@ steps:
       - run
       - deploy
       - ${_SERVICE_NAME}
-      - --image=${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}
+      - --image=${_IMAGE}:${COMMIT_SHA}
       - --region=${_DEPLOY_REGION}
       - --platform=managed
       - --allow-unauthenticated
       - --port=8080
-      - --memory=512Mi
+      - --memory=1Gi
       - --cpu=1
+      - --cpu-boost
+      - --concurrency=${_CONCURRENCY}
+      - --timeout=300
       - --min-instances=0
       - --max-instances=5
       - --execution-environment=gen2
+      - --service-account=${_RUNTIME_SA}@${PROJECT_ID}.iam.gserviceaccount.com
+      - --revision-suffix=${SHORT_SHA}
+      - --labels=app=${_LABEL_APP},env=${_LABEL_ENV},owner=${_LABEL_OWNER}
       - --update-env-vars=NODE_ENV=production,ADMIN_EMAIL=${_ADMIN_EMAIL},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},APP_URL=${_APP_URL},MAX_FILES_PER_UPLOAD=${_MAX_FILES_PER_UPLOAD},INVITE_EXPIRATION_HOURS=${_INVITE_EXPIRATION_HOURS},MAX_FILE_SIZE_MB=${_MAX_FILE_SIZE_MB},MAX_CONCURRENT_JOBS=${_MAX_CONCURRENT_JOBS},RATE_LIMIT_PER_MINUTE=${_RATE_LIMIT_PER_MINUTE}
       - --set-secrets=GOOGLE_CLIENT_SECRET=${_SECRET_GOOGLE_CLIENT_SECRET}:latest,OPENAI_API_KEY=${_SECRET_OPENAI_API_KEY}:latest,SESSION_SECRET=${_SECRET_SESSION_SECRET}:latest
 
 images:
-  - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}
-  - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:latest
+  - ${_IMAGE}:${COMMIT_SHA}
+  - ${_IMAGE}:latest
 
 options:
   logging: CLOUD_LOGGING_ONLY
+
+serviceAccount: projects/${PROJECT_ID}/serviceAccounts/cloud-build-sa@${PROJECT_ID}.iam.gserviceaccount.com
