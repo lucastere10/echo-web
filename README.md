@@ -1,6 +1,6 @@
 # Echo
 
-Aplicação web monolítica para transcrição de áudio e vídeo com IA. Envie arquivos de reunião (MP4, etc.), transcreva com o Whisper da OpenAI e copie ou baixe o resultado em TXT ou Markdown.
+Aplicação web monolítica para transcrição de áudio e vídeo com IA. Envie arquivos de reunião (MP4, etc.), transcreva com o `gpt-4o-transcribe` da OpenAI e copie ou baixe o resultado em TXT ou Markdown.
 
 ## Stack
 
@@ -8,7 +8,7 @@ Aplicação web monolítica para transcrição de áudio e vídeo com IA. Envie 
 - [TanStack Start](https://tanstack.com/start) + [TanStack Router](https://tanstack.com/router)
 - TypeScript
 - Tailwind CSS v4
-- OpenAI Whisper (API)
+- OpenAI Speech-to-Text (`gpt-4o-transcribe`)
 - Google OAuth (somente administrador)
 - Armazenamento em JSON (`data/`), sem banco de dados
 
@@ -99,7 +99,7 @@ A aplicação sobe em `http://localhost:3000`.
 
 `mp3`, `wav`, `m4a`, `mp4`, `webm`, `ogg` (áudio e vídeo)
 
-Vídeos (ex.: MP4 de reunião) têm o áudio extraído no servidor antes da transcrição. A API Whisper aceita no máximo **25 MB por requisição**; arquivos maiores são comprimidos e fatiados automaticamente com **ffmpeg**.
+Vídeos (ex.: MP4 de reunião) têm o áudio extraído no servidor antes da transcrição. A API de transcrição da OpenAI aceita no máximo **25 MB por requisição**; arquivos maiores são comprimidos e fatiados automaticamente com **ffmpeg**.
 
 ### ffmpeg
 

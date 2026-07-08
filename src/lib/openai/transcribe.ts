@@ -3,6 +3,7 @@ import { errors } from '#/lib/errors'
 
 import type { PreparedAudioPart } from '#/lib/audio/prepare'
 
+const TRANSCRIPTION_MODEL = 'gpt-4o-transcribe'
 const PROMPT_TAIL_CHARS = 500
 
 async function transcribePart(
@@ -12,7 +13,7 @@ async function transcribePart(
 ): Promise<string> {
   const formData = new FormData()
   formData.append('file', file, fileName)
-  formData.append('model', 'whisper-1')
+  formData.append('model', TRANSCRIPTION_MODEL)
   if (prompt) {
     formData.append('prompt', prompt)
   }
