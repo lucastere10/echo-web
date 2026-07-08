@@ -1,5 +1,7 @@
 import { Upload } from 'lucide-react'
 
+import { FILE_ACCEPT } from '#/lib/media'
+
 type UploadZoneProps = {
   disabled?: boolean
   maxFiles: number
@@ -34,7 +36,7 @@ export default function UploadZone({
           <Upload size={28} strokeWidth={1.5} />
         </div>
         <h2 className="mb-2 text-xl font-semibold text-[var(--text)]">
-          Arraste arquivos de áudio aqui
+          Arraste arquivos de áudio ou vídeo aqui
         </h2>
         <p className="mb-6 text-sm text-[var(--text-muted)]">
           ou escolha arquivos do seu dispositivo (até {maxFiles} por envio)
@@ -46,7 +48,7 @@ export default function UploadZone({
             className="sr-only"
             multiple
             disabled={disabled}
-            accept=".mp3,.wav,.m4a,.mp4,.webm,.ogg,audio/*"
+            accept={FILE_ACCEPT}
             onChange={(event) => handleFiles(event.target.files)}
           />
         </label>

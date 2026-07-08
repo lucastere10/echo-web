@@ -6,9 +6,10 @@ import type { SessionData } from '#/lib/auth/session'
 import { getActiveSession } from '#/lib/auth/session'
 import { sessionConfig } from '#/lib/auth/session-config.server'
 import { validateAudioFile } from '#/lib/audio'
+import { prepareAudioForTranscription } from '#/lib/audio/prepare'
 import { toErrorResponse } from '#/lib/errors'
 import { env } from '#/lib/env'
-import { transcribeAudio } from '#/lib/openai/transcribe'
+import { transcribeAudioParts } from '#/lib/openai/transcribe'
 import { withJobSlot } from '#/lib/rate-limit/jobs'
 import { checkIpRateLimit } from '#/lib/rate-limit/ip'
 import { incrementUploadsUsed } from '#/lib/storage/invitations'
@@ -47,9 +48,8 @@ export const Route = createFileRoute('/api/transcribe')({
           }
 
           const text = await withJobSlot(async () => {
-            const buffer = await file.arrayBuffer()
-            const blob = new Blob([buffer], { type: file.type || 'application/octet-stream' })
-            return transcribeAudio(blob, file.name)
+            const parts = await prepareAudioForTranscription(file)
+            return transcribeAudioParts(parts)
           })
 
           return Response.json({

@@ -42,6 +42,16 @@ export const errors = {
     new AppError(413, `Arquivo muito grande. O máximo é ${maxMb} MB.`),
   unsupportedType: () =>
     new AppError(415, 'Tipo de arquivo não suportado. Use mp3, wav, m4a, mp4, webm ou ogg.'),
+  audioPrepareUnavailable: () =>
+    new AppError(
+      503,
+      'Conversão de áudio indisponível no servidor. Instale o ffmpeg ou tente um arquivo menor.',
+    ),
+  audioPrepareFailed: () =>
+    new AppError(
+      422,
+      'Não foi possível extrair áudio deste arquivo. Verifique se o vídeo contém faixa de áudio.',
+    ),
   openAiFailed: () =>
     new AppError(502, 'Falha na transcrição. Tente novamente.'),
 }
