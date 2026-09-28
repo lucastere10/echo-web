@@ -54,4 +54,34 @@ export const errors = {
     ),
   openAiFailed: () =>
     new AppError(502, 'Falha na transcrição. Tente novamente.'),
+  instagramInvalidUrl: () =>
+    new AppError(
+      400,
+      'Link inválido. Use um link público de Reel ou post do Instagram.',
+    ),
+  instagramPrivateOrUnavailable: () =>
+    new AppError(
+      403,
+      'Este conteúdo parece privado, removido ou indisponível para transcrição.',
+    ),
+  instagramNoMedia: () =>
+    new AppError(
+      422,
+      'Este post não contém vídeo ou áudio que possa ser transcrito.',
+    ),
+  instagramTooLong: (maxSeconds: number) =>
+    new AppError(
+      413,
+      `Vídeo muito longo. O máximo para Instagram é ${Math.floor(maxSeconds / 60)} min.`,
+    ),
+  instagramYtDlpUnavailable: () =>
+    new AppError(
+      503,
+      'Download do Instagram indisponível no servidor. Instale o yt-dlp.',
+    ),
+  instagramFetchFailed: () =>
+    new AppError(
+      502,
+      'Não foi possível obter o vídeo do Instagram. Tente novamente ou envie o arquivo.',
+    ),
 }

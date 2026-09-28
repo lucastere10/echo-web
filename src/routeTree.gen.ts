@@ -12,9 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as InviteTokenRouteImport } from './routes/invite/$token'
-import { Route as AuthGoogleRouteImport } from './routes/auth/google'
-import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AuthMagicRouteImport } from './routes/auth/magic'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as ApiInstagramValidateRouteImport } from './routes/api/instagram/validate'
+import { Route as ApiInstagramTranscribeRouteImport } from './routes/api/instagram/transcribe'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -31,14 +32,9 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthGoogleRoute = AuthGoogleRouteImport.update({
-  id: '/auth/google',
-  path: '/auth/google',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/auth/callback',
-  path: '/auth/callback',
+const AuthMagicRoute = AuthMagicRouteImport.update({
+  id: '/auth/magic',
+  path: '/auth/magic',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
@@ -46,66 +42,83 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInstagramValidateRoute = ApiInstagramValidateRouteImport.update({
+  id: '/api/instagram/validate',
+  path: '/api/instagram/validate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInstagramTranscribeRoute = ApiInstagramTranscribeRouteImport.update({
+  id: '/api/instagram/transcribe',
+  path: '/api/instagram/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/transcribe': typeof ApiTranscribeRoute
-  '/auth/callback': typeof AuthCallbackRoute
-  '/auth/google': typeof AuthGoogleRoute
+  '/auth/magic': typeof AuthMagicRoute
   '/invite/$token': typeof InviteTokenRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/instagram/transcribe': typeof ApiInstagramTranscribeRoute
+  '/api/instagram/validate': typeof ApiInstagramValidateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/transcribe': typeof ApiTranscribeRoute
-  '/auth/callback': typeof AuthCallbackRoute
-  '/auth/google': typeof AuthGoogleRoute
+  '/auth/magic': typeof AuthMagicRoute
   '/invite/$token': typeof InviteTokenRoute
   '/admin': typeof AdminIndexRoute
+  '/api/instagram/transcribe': typeof ApiInstagramTranscribeRoute
+  '/api/instagram/validate': typeof ApiInstagramValidateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/transcribe': typeof ApiTranscribeRoute
-  '/auth/callback': typeof AuthCallbackRoute
-  '/auth/google': typeof AuthGoogleRoute
+  '/auth/magic': typeof AuthMagicRoute
   '/invite/$token': typeof InviteTokenRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/instagram/transcribe': typeof ApiInstagramTranscribeRoute
+  '/api/instagram/validate': typeof ApiInstagramValidateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/api/transcribe'
-    | '/auth/callback'
-    | '/auth/google'
+    | '/auth/magic'
     | '/invite/$token'
     | '/admin/'
+    | '/api/instagram/transcribe'
+    | '/api/instagram/validate'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/api/transcribe'
-    | '/auth/callback'
-    | '/auth/google'
+    | '/auth/magic'
     | '/invite/$token'
     | '/admin'
+    | '/api/instagram/transcribe'
+    | '/api/instagram/validate'
   id:
     | '__root__'
     | '/'
     | '/api/transcribe'
-    | '/auth/callback'
-    | '/auth/google'
+    | '/auth/magic'
     | '/invite/$token'
     | '/admin/'
+    | '/api/instagram/transcribe'
+    | '/api/instagram/validate'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
-  AuthCallbackRoute: typeof AuthCallbackRoute
-  AuthGoogleRoute: typeof AuthGoogleRoute
+  AuthMagicRoute: typeof AuthMagicRoute
   InviteTokenRoute: typeof InviteTokenRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  ApiInstagramTranscribeRoute: typeof ApiInstagramTranscribeRoute
+  ApiInstagramValidateRoute: typeof ApiInstagramValidateRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -131,18 +144,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/google': {
-      id: '/auth/google'
-      path: '/auth/google'
-      fullPath: '/auth/google'
-      preLoaderRoute: typeof AuthGoogleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/auth/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
+    '/auth/magic': {
+      id: '/auth/magic'
+      path: '/auth/magic'
+      fullPath: '/auth/magic'
+      preLoaderRoute: typeof AuthMagicRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/transcribe': {
@@ -152,16 +158,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/instagram/validate': {
+      id: '/api/instagram/validate'
+      path: '/api/instagram/validate'
+      fullPath: '/api/instagram/validate'
+      preLoaderRoute: typeof ApiInstagramValidateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/instagram/transcribe': {
+      id: '/api/instagram/transcribe'
+      path: '/api/instagram/transcribe'
+      fullPath: '/api/instagram/transcribe'
+      preLoaderRoute: typeof ApiInstagramTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
-  AuthCallbackRoute: AuthCallbackRoute,
-  AuthGoogleRoute: AuthGoogleRoute,
+  AuthMagicRoute: AuthMagicRoute,
   InviteTokenRoute: InviteTokenRoute,
   AdminIndexRoute: AdminIndexRoute,
+  ApiInstagramTranscribeRoute: ApiInstagramTranscribeRoute,
+  ApiInstagramValidateRoute: ApiInstagramValidateRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -623,6 +623,28 @@ a {
   padding: 1rem;
 }
 
+.echo-beta-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 0.1rem 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.85;
+  cursor: help;
+}
+
+.echo-beta-chip:hover,
+.echo-beta-chip:focus-visible {
+  opacity: 1;
+  color: var(--text);
+  outline: none;
+}
+
 .echo-status {
   display: inline-flex;
   align-items: center;

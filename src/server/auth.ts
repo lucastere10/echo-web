@@ -1,13 +1,16 @@
 import { createServerFn } from '@tanstack/react-start'
 import {
   clearSession,
+  getRequestIP,
   getSession,
-  useSession,
+  updateSession,
 } from '@tanstack/react-start/server'
 
-import { assertAdmin, resolveInviteToken } from '#/lib/auth/access'
+import { assertAdmin, resolveInviteToken, resolveSession } from '#/lib/auth/access'
+import { isEmailAllowed } from '#/lib/auth/allowlist'
+import { signMagicLink } from '#/lib/auth/magic-link'
+import { sendMagicLinkEmail } from '#/lib/auth/send-magic-link'
 import type { SessionData } from '#/lib/auth/session'
-import { getActiveSession } from '#/lib/auth/session'
 import { sessionConfig } from '#/lib/auth/session-config.server'
 import { env } from '#/lib/env'
 import { AppError } from '#/lib/errors'
@@ -17,12 +20,21 @@ import {
   listInvitations,
   revokeInvitation,
 } from '#/lib/storage/invitations'
+import { checkIpRateLimit } from '#/lib/rate-limit/ip'
 import { saveAccessRequest } from '#/lib/storage/access-requests'
+
+function isValidEmail(email: string): boolean {
+  const at = email.indexOf('@')
+  if (at <= 0 || email.lastIndexOf('@') !== at || email.includes(' ')) return false
+  const domain = email.slice(at + 1)
+  const dot = domain.lastIndexOf('.')
+  return dot > 0 && dot < domain.length - 1
+}
 
 export const getAppSession = createServerFn({ method: 'GET' }).handler(
   async (): Promise<SessionData | null> => {
     const session = await getSession<SessionData>(sessionConfig)
-    return getActiveSession(session.data)
+    return resolveSession(session.data)
   },
 )
 
@@ -44,8 +56,8 @@ export const acceptInvite = createServerFn({ method: 'GET' })
       return { ok: false as const, error: message }
     }
 
-    const session = await useSession<SessionData>(sessionConfig)
-    await session.update({
+    await clearSession(sessionConfig)
+    await updateSession(sessionConfig, {
       isAdmin: false,
       inviteToken: token,
     })
@@ -56,7 +68,7 @@ export const acceptInvite = createServerFn({ method: 'GET' })
 export const requestAccess = createServerFn({ method: 'POST' })
   .validator((email: string) => email.trim().toLowerCase())
   .handler(async ({ data: email }) => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!isValidEmail(email)) {
       throw new Error('Informe um e-mail válido.')
     }
 
@@ -64,9 +76,36 @@ export const requestAccess = createServerFn({ method: 'POST' })
     return { success: true }
   })
 
+export const requestMagicLink = createServerFn({ method: 'POST' })
+  .validator((email: string) => email.trim().toLowerCase())
+  .handler(async ({ data: email }) => {
+    if (!isValidEmail(email)) {
+      throw new Error('Informe um e-mail válido.')
+    }
+
+    const ip = getRequestIP({ xForwardedFor: true }) ?? 'unknown'
+    checkIpRateLimit(ip)
+
+    if (!isEmailAllowed(email)) {
+      return { success: true as const }
+    }
+
+    const token = signMagicLink(email)
+    const url = `${env.APP_URL}/auth/magic?token=${encodeURIComponent(token)}`
+
+    try {
+      await sendMagicLinkEmail(email, url)
+    } catch (error) {
+      console.error('Magic link send failed:', error)
+      throw new Error('Não foi possível enviar o link. Tente novamente.')
+    }
+
+    return { success: true as const }
+  })
+
 async function requireAdminSession(): Promise<SessionData> {
   const session = await getSession<SessionData>(sessionConfig)
-  return assertAdmin(getActiveSession(session.data))
+  return assertAdmin(resolveSession(session.data))
 }
 
 export const listInvitesAdmin = createServerFn({ method: 'GET' }).handler(
