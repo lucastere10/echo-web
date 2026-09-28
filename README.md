@@ -184,7 +184,8 @@ Ajuste as substituições no `cloudbuild.yaml` conforme seu projeto:
 - `_DEPLOY_REGION` — região do Cloud Run
 - `_SERVICE_NAME` — nome do serviço
 - `_APP_URL` — URL pública do Cloud Run após o primeiro deploy
-- Variáveis sensíveis (`RESEND_API_KEY`, `RESEND_FROM`, `OPENAI_API_KEY`, `SESSION_SECRET`) — prefira Secret Manager em produção
+- `_RESEND_FROM` — remetente verificado no Resend
+- Variáveis sensíveis (`RESEND_API_KEY`, `OPENAI_API_KEY`, `SESSION_SECRET`) — prefira Secret Manager em produção
 
 #### Variáveis obrigatórias no Cloud Run
 
@@ -197,7 +198,7 @@ RESEND_API_KEY
 RESEND_FROM
 ```
 
-`ALLOWED_EMAILS` é opcional. Antes do primeiro deploy com magic link, crie os secrets `echo-resend-api-key` e `echo-resend-from` no Secret Manager.
+`ALLOWED_EMAILS` é opcional; no `cloudbuild.yaml`, separe os e-mails por vírgula normalmente. Antes do primeiro deploy com magic link, crie o secret `echo-resend-api-key` no Secret Manager.
 
 > **Importante:** `APP_URL` deve ser a URL pública real do serviço (ex.: `https://echo-web-xxxxx.run.app`) para o magic link e os links de convite funcionarem.
 
