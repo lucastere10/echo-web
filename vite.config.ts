@@ -9,6 +9,14 @@ import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  test: {
+    env: {
+      ADMIN_EMAIL: 'admin@example.com',
+      OPENAI_API_KEY: 'test-key',
+      SESSION_SECRET: 'test-session-secret',
+      APP_URL: 'http://localhost:3000',
+    },
+  },
   plugins: [
     devtools(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),

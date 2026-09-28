@@ -1,9 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getRequestIP, getSession } from '@tanstack/react-start/server'
 
-import { assertUploadAccess } from '#/lib/auth/access'
+import { assertUploadAccess, resolveSession } from '#/lib/auth/access'
 import type { SessionData } from '#/lib/auth/session'
-import { getActiveSession } from '#/lib/auth/session'
 import { sessionConfig } from '#/lib/auth/session-config.server'
 import { validateAudioFile } from '#/lib/audio'
 import { prepareAudioForTranscription } from '#/lib/audio/prepare'
@@ -23,7 +22,7 @@ export const Route = createFileRoute('/api/transcribe')({
           checkIpRateLimit(ip)
 
           const sessionState = await getSession<SessionData>(sessionConfig)
-          const session = getActiveSession(sessionState.data)
+          const session = resolveSession(sessionState.data)
           const access = await assertUploadAccess(session)
 
           const formData = await request.formData()
@@ -43,7 +42,7 @@ export const Route = createFileRoute('/api/transcribe')({
 
           validateAudioFile(file)
 
-          if (!session?.isAdmin && access.inviteToken) {
+          if (!access.session.isAdmin && access.inviteToken) {
             await incrementUploadsUsed(access.inviteToken)
           }
 

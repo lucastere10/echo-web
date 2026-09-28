@@ -11,16 +11,15 @@ substitutions:
   _LABEL_ENV: production
   _LABEL_OWNER: lucas
 
-  # OAuth
-  _GOOGLE_CLIENT_ID: 399951936554-p11610v94n935vo6fpk4unbtv51sov5c.apps.googleusercontent.com
-  _SECRET_GOOGLE_CLIENT_SECRET: echo-google-client-secret
-
   # Secrets
   _SECRET_OPENAI_API_KEY: echo-openai-api-key
   _SECRET_SESSION_SECRET: echo-session-secret
+  _SECRET_RESEND_API_KEY: echo-resend-api-key
+  _SECRET_RESEND_FROM: echo-resend-from
 
   # Application
   _ADMIN_EMAIL: lucastere10@gmail.com
+  _ALLOWED_EMAILS: ""
   _APP_URL: https://echo-web-399951936554.us-central1.run.app
   _MAX_FILES_PER_UPLOAD: "10"
   _INVITE_EXPIRATION_HOURS: "24"
@@ -69,8 +68,10 @@ steps:
       - --service-account=${_RUNTIME_SA}@${PROJECT_ID}.iam.gserviceaccount.com
       - --revision-suffix=${SHORT_SHA}
       - --labels=app=${_LABEL_APP},env=${_LABEL_ENV},owner=${_LABEL_OWNER}
-      - --update-env-vars=NODE_ENV=production,ADMIN_EMAIL=${_ADMIN_EMAIL},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},APP_URL=${_APP_URL},MAX_FILES_PER_UPLOAD=${_MAX_FILES_PER_UPLOAD},INVITE_EXPIRATION_HOURS=${_INVITE_EXPIRATION_HOURS},MAX_FILE_SIZE_MB=${_MAX_FILE_SIZE_MB},MAX_CONCURRENT_JOBS=${_MAX_CONCURRENT_JOBS},RATE_LIMIT_PER_MINUTE=${_RATE_LIMIT_PER_MINUTE}
-      - --set-secrets=GOOGLE_CLIENT_SECRET=${_SECRET_GOOGLE_CLIENT_SECRET}:latest,OPENAI_API_KEY=${_SECRET_OPENAI_API_KEY}:latest,SESSION_SECRET=${_SECRET_SESSION_SECRET}:latest
+      - --update-env-vars=NODE_ENV=production,ADMIN_EMAIL=${_ADMIN_EMAIL},ALLOWED_EMAILS=${_ALLOWED_EMAILS},APP_URL=${_APP_URL},MAX_FILES_PER_UPLOAD=${_MAX_FILES_PER_UPLOAD},INVITE_EXPIRATION_HOURS=${_INVITE_EXPIRATION_HOURS},MAX_FILE_SIZE_MB=${_MAX_FILE_SIZE_MB},MAX_CONCURRENT_JOBS=${_MAX_CONCURRENT_JOBS},RATE_LIMIT_PER_MINUTE=${_RATE_LIMIT_PER_MINUTE}
+      - --remove-env-vars=GOOGLE_CLIENT_ID
+      - --remove-secrets=GOOGLE_CLIENT_SECRET
+      - --set-secrets=OPENAI_API_KEY=${_SECRET_OPENAI_API_KEY}:latest,SESSION_SECRET=${_SECRET_SESSION_SECRET}:latest,RESEND_API_KEY=${_SECRET_RESEND_API_KEY}:latest,RESEND_FROM=${_SECRET_RESEND_FROM}:latest
 
 images:
   - ${_IMAGE}:${COMMIT_SHA}

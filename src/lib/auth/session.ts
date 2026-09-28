@@ -6,15 +6,11 @@ export type SessionData = {
   inviteToken?: string
 }
 
-export const OAUTH_STATE_COOKIE = 'echo_oauth_state'
-export const OAUTH_VERIFIER_COOKIE = 'echo_oauth_verifier'
-export const FLASH_ERROR_COOKIE = 'echo_flash_error'
-
 export function getActiveSession(
   data: Partial<SessionData> | null | undefined,
 ): SessionData | null {
   if (!data) return null
-  if (data.isAdmin && data.email) {
+  if (data.email) {
     return data as SessionData
   }
   if (data.inviteToken) {
@@ -32,7 +28,7 @@ export function getSessionLabel(session: SessionData | null): string | undefined
 
 export function canUpload(session: SessionData | null): boolean {
   if (!session) return false
-  if (session.isAdmin) return true
+  if (session.isAdmin || session.email) return true
   return Boolean(session.inviteToken)
 }
 

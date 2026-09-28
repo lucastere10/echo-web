@@ -80,8 +80,8 @@ export default function AccessRequestModal() {
           </div>
           <form className="echo-dialog-body" onSubmit={handleSubmit} noValidate>
             <p className="mb-4 text-sm text-[var(--text-muted)]">
-              Informe seu e-mail. O administrador avaliará sua solicitação e enviará um
-              convite se aprovado.
+              Informe seu e-mail. O administrador avalia a solicitação e, se aprovar,
+              autoriza este endereço para entrar com um link.
             </p>
             <label className="mb-4 grid gap-2 text-sm font-medium text-[var(--text)]" htmlFor={emailId}>
               E-mail

@@ -1,16 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import GoogleIcon from '#/components/GoogleIcon'
+import { useServerFn } from '@tanstack/react-start'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import InstagramLinkInput from '#/components/InstagramLinkInput'
+import type { InstagramValidatedLink } from '#/components/InstagramLinkInput'
 import QueuePanel from '#/components/QueuePanel'
 import UploadZone from '#/components/UploadZone'
 import { getSessionLabel } from '#/lib/auth/session'
 import {
-  FILE_ACCEPT,
   SUPPORTED_EXTENSIONS,
   SUPPORTED_FORMATS_LABEL,
   getFileExtension,
   isVideoFile,
 } from '#/lib/media'
+import { requestMagicLink } from '#/server/auth'
 import { getUploadConfig } from '#/server/upload'
 
 export const Route = createFileRoute('/')({
@@ -18,15 +20,27 @@ export const Route = createFileRoute('/')({
   component: HomePage,
 })
 
-type FileItem = {
+type QueueItemBase = {
   id: string
-  file: File
+  fileName: string
   duration?: number
   status: 'queued' | 'uploading' | 'processing' | 'completed' | 'error'
   progress: number
   text?: string
   error?: string
 }
+
+type FileQueueItem = QueueItemBase & {
+  source: 'file'
+  file: File
+}
+
+type InstagramQueueItem = QueueItemBase & {
+  source: 'instagram'
+  url: string
+}
+
+type QueueItem = FileQueueItem | InstagramQueueItem
 
 const SUPPORTED_EXTENSION_SET = new Set<string>(SUPPORTED_EXTENSIONS)
 
@@ -98,10 +112,103 @@ function uploadWithProgress(
   })
 }
 
+async function transcribeInstagramUrl(
+  url: string,
+): Promise<{ text: string; fileName: string }> {
+  const response = await fetch('/api/instagram/transcribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+
+  const payload = (await response.json()) as {
+    text?: string
+    fileName?: string
+    error?: string
+  }
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Falha na transcrição do Instagram')
+  }
+
+  return {
+    text: payload.text ?? '',
+    fileName: payload.fileName ?? 'instagram.mp4',
+  }
+}
+
+function MagicLinkForm() {
+  const requestMagicLinkFn = useServerFn(requestMagicLink)
+  const emailId = useId()
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState<string | null>(null)
+  const [fieldError, setFieldError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  async function handleSubmit(event: { preventDefault(): void }) {
+    event.preventDefault()
+    setFieldError(null)
+    setMessage(null)
+
+    const trimmed = email.trim()
+    if (!trimmed) {
+      setFieldError('Informe seu e-mail.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await requestMagicLinkFn({ data: trimmed })
+      setMessage('Se este e-mail tiver acesso, enviamos um link para entrar.')
+    } catch (cause) {
+      setFieldError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível enviar o link. Tente novamente.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <form className="mx-auto grid max-w-sm gap-3 text-left" onSubmit={handleSubmit} noValidate>
+      <label className="grid gap-2 text-sm font-medium text-[var(--text)]" htmlFor={emailId}>
+        <span>E-mail</span>
+        <input
+          id={emailId}
+          type="email"
+          name="email"
+          className="echo-input"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          autoComplete="email"
+          inputMode="email"
+          spellCheck={false}
+          required
+          disabled={isSubmitting}
+          placeholder="voce@exemplo.com"
+        />
+      </label>
+      {fieldError ? (
+        <p className="echo-alert-danger" role="alert">
+          {fieldError}
+        </p>
+      ) : null}
+      {message ? (
+        <output className="echo-alert-success block w-full">{message}</output>
+      ) : null}
+      <button type="submit" className="echo-button" disabled={isSubmitting}>
+        {isSubmitting ? 'Enviando...' : 'Enviar link de acesso'}
+      </button>
+    </form>
+  )
+}
+
 function HomePage() {
   const uploadConfig = Route.useLoaderData()
   const { session } = Route.useRouteContext()
-  const [queue, setQueue] = useState<FileItem[]>([])
+  const [queue, setQueue] = useState<QueueItem[]>([])
   const [validationMessage, setValidationMessage] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -113,10 +220,10 @@ function HomePage() {
 
   const accessError = useMemo(() => {
     if (urlError === 'no_access') {
-      return 'Apenas o administrador pode entrar com Google.'
+      return 'Este e-mail não tem acesso.'
     }
     if (urlError === 'auth_failed') {
-      return 'Falha ao entrar. Tente novamente.'
+      return 'O link de acesso é inválido ou expirou. Peça um novo.'
     }
     return null
   }, [urlError])
@@ -130,6 +237,49 @@ function HomePage() {
     setIsProcessing(true)
 
     for (const item of pending) {
+      if (item.source === 'instagram') {
+        setQueue((current) =>
+          current.map((entry) =>
+            entry.id === item.id
+              ? { ...entry, status: 'processing', progress: 0 }
+              : entry,
+          ),
+        )
+
+        try {
+          const result = await transcribeInstagramUrl(item.url)
+          setQueue((current) =>
+            current.map((entry) =>
+              entry.id === item.id
+                ? {
+                    ...entry,
+                    status: 'completed',
+                    progress: 100,
+                    text: result.text,
+                    fileName: result.fileName || entry.fileName,
+                  }
+                : entry,
+            ),
+          )
+        } catch (error) {
+          setQueue((current) =>
+            current.map((entry) =>
+              entry.id === item.id
+                ? {
+                    ...entry,
+                    status: 'error',
+                    error:
+                      error instanceof Error
+                        ? error.message
+                        : 'Falha na transcrição',
+                  }
+                : entry,
+            ),
+          )
+        }
+        continue
+      }
+
       setQueue((current) =>
         current.map((entry) =>
           entry.id === item.id
@@ -141,7 +291,7 @@ function HomePage() {
       try {
         const result = await uploadWithProgress(
           item.file,
-          pending.length,
+          pending.filter((entry) => entry.source === 'file').length,
           (progress) => {
             setQueue((current) =>
               current.map((entry) =>
@@ -215,7 +365,7 @@ function HomePage() {
     }
 
     const maxBytes = uploadConfig.maxFileSizeMb * 1024 * 1024
-    const accepted: FileItem[] = []
+    const accepted: FileQueueItem[] = []
 
     for (const file of files) {
       const extension = getFileExtension(file.name)
@@ -235,7 +385,9 @@ function HomePage() {
 
       accepted.push({
         id: crypto.randomUUID(),
+        source: 'file',
         file,
+        fileName: file.name,
         duration: await readDuration(file),
         status: 'queued',
         progress: 0,
@@ -245,6 +397,44 @@ function HomePage() {
     if (accepted.length > 0) {
       setQueue((current) => [...current, ...accepted])
     }
+  }
+
+  function handleInstagramSubmit(link: InstagramValidatedLink) {
+    setValidationMessage(null)
+
+    const busy = queue.some(
+      (item) =>
+        item.status === 'queued' ||
+        item.status === 'uploading' ||
+        item.status === 'processing',
+    )
+    if (busy) {
+      setValidationMessage(
+        'Aguarde a fila atual terminar antes de enviar outro link do Instagram.',
+      )
+      return
+    }
+
+    const queuedCount = queue.filter((item) => item.status === 'queued').length
+    if (queuedCount >= uploadConfig.maxFilesPerUpload) {
+      setValidationMessage(
+        `Você pode enviar até ${uploadConfig.maxFilesPerUpload} itens por vez.`,
+      )
+      return
+    }
+
+    setQueue((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        source: 'instagram',
+        url: link.url,
+        fileName: link.fileName,
+        duration: link.durationSeconds,
+        status: 'queued',
+        progress: 0,
+      },
+    ])
   }
 
   function removeQueuedFile(id: string) {
@@ -262,16 +452,13 @@ function HomePage() {
             Transcrição de áudio com IA
           </h1>
           <p className="mb-8 text-[var(--text-muted)]">
-            Use um link de convite para acessar a plataforma ou entre com Google
-            se você for o administrador.
+            Use um link de convite para acessar a plataforma ou entre com o e-mail
+            autorizado.
           </p>
           {accessError ? (
             <p className="echo-alert-danger mb-6">{accessError}</p>
           ) : null}
-          <a href="/auth/google" className="echo-button inline-flex">
-            <GoogleIcon />
-            Entrar com Google
-          </a>
+          <MagicLinkForm />
         </section>
       </main>
     )
@@ -300,7 +487,7 @@ function HomePage() {
 
   const queueItems = queue.map((item) => ({
     id: item.id,
-    fileName: item.file.name,
+    fileName: item.fileName,
     duration: item.duration,
     status: item.status,
     progress: item.progress,
@@ -322,6 +509,13 @@ function HomePage() {
         maxFiles={uploadConfig.maxFilesPerUpload}
         onFilesSelected={handleFilesSelected}
         validationMessage={validationMessage}
+      />
+
+      <InstagramLinkInput
+        disabled={isProcessing}
+        maxDurationSeconds={uploadConfig.maxInstagramDurationSeconds}
+        maxFileSizeMb={uploadConfig.maxFileSizeMb}
+        onSubmit={handleInstagramSubmit}
       />
 
       <QueuePanel items={queueItems} onRemove={removeQueuedFile} />

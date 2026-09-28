@@ -9,28 +9,28 @@ Aplicação web monolítica para transcrição de áudio e vídeo com IA. Envie 
 - TypeScript
 - Tailwind CSS v4
 - OpenAI Speech-to-Text (`gpt-4o-transcribe`)
-- Google OAuth (somente administrador)
+- Magic link por e-mail (administrador e lista de acesso)
 - Armazenamento em JSON (`data/`), sem banco de dados
 
 ## Como funciona
 
 ### Administrador
 
-- Entra com **Google OAuth** (apenas o e-mail definido em `ADMIN_EMAIL`)
+- Entra com **magic link** no e-mail definido em `ADMIN_EMAIL`
 - Acessa **Admin** para gerar links de convite
 - Compartilha links no formato `{APP_URL}/invite/{token}`
 - Também pode transcrever áudio normalmente
 
 ### Usuários convidados
 
-- Abrem o link de convite e **ganham acesso imediatamente** — sem Google OAuth
+- Abrem o link de convite e **ganham acesso imediatamente** — sem magic link
 - A sessão fica vinculada ao token do convite
 - Podem enviar arquivos dentro dos limites definidos no convite
 
 ### Visitantes
 
-- Na home, podem usar **Entrar com Google** (somente o admin consegue autenticar)
-- No header, podem usar **Solicitar acesso** para enviar um e-mail de interesse ao administrador
+- Na home, informam o e-mail e recebem um **magic link** se o endereço for o admin ou estiver em `ALLOWED_EMAILS`
+- No header, podem usar **Solicitar acesso** para pedir que o administrador autorize o e-mail
 
 ## Desenvolvimento local
 
@@ -49,9 +49,7 @@ Preencha o `.env`:
 
 | Variável | Descrição |
 |----------|-----------|
-| `ADMIN_EMAIL` | E-mail Google do administrador |
-| `GOOGLE_CLIENT_ID` | Client ID do Google Cloud Console |
-| `GOOGLE_CLIENT_SECRET` | Client Secret do Google Cloud Console |
+| `ADMIN_EMAIL` | E-mail do administrador |
 | `OPENAI_API_KEY` | Chave da API OpenAI (somente servidor) |
 | `SESSION_SECRET` | String longa e aleatória para criptografar sessões |
 | `APP_URL` | URL pública da aplicação (ex.: `http://localhost:3000`) |
@@ -63,18 +61,18 @@ Variáveis opcionais (com defaults):
 | `MAX_FILES_PER_UPLOAD` | `10` | Máximo de arquivos por envio |
 | `INVITE_EXPIRATION_HOURS` | `24` | Validade do convite em horas |
 | `MAX_FILE_SIZE_MB` | `150` | Tamanho máximo por arquivo no upload |
+| `MAX_INSTAGRAM_DURATION_SECONDS` | `180` | Duração máxima para links do Instagram (Beta) |
 | `MAX_CONCURRENT_JOBS` | `2` | Transcrições simultâneas no servidor |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Limite de requisições por IP/minuto |
+| `ALLOWED_EMAILS` | vazio | E-mails adicionais, separados por vírgula, que podem entrar com magic link |
+| `RESEND_API_KEY` | vazio | Chave da API Resend para enviar o magic link |
+| `RESEND_FROM` | vazio | Remetente verificado no Resend (ex.: `Echo <login@seudominio.com>`) |
 
-### Google OAuth
+### Magic link
 
-No Google Cloud Console, configure a URI de redirect autorizada:
+Quem informa um e-mail na home recebe a mesma confirmação. O link só é enviado se o endereço for `ADMIN_EMAIL` ou estiver em `ALLOWED_EMAILS`. Ele vale 15 minutos e não fica gravado: a assinatura usa `SESSION_SECRET`.
 
-```
-{APP_URL}/auth/callback
-```
-
-Exemplo local: `http://localhost:3000/auth/callback`
+Em desenvolvimento, sem `RESEND_API_KEY`, o servidor imprime a URL do link no log. Em produção, a chave e o remetente são obrigatórios para o envio funcionar.
 
 ### Executar
 
@@ -108,9 +106,20 @@ Necessário no servidor (e localmente, para arquivos grandes ou vídeo):
 - **Docker/Cloud Run:** já incluído na imagem de produção
 - **Local:** instale [ffmpeg](https://ffmpeg.org/) e garanta que `ffmpeg` e `ffprobe` estejam no `PATH`
 
+### Instagram (Beta)
+
+É possível colar um link público de Reel ou post do Instagram para transcrição. O recurso é **experimental**: alguns links podem falhar (posts privados, mudanças no Instagram, etc.).
+
+Requisitos adicionais:
+
+- **`yt-dlp`** no `PATH` (Docker/Cloud Run já inclui; localmente: [yt-dlp](https://github.com/yt-dlp/yt-dlp) ou `py -m pip install -U "yt-dlp[default]"`)
+- Limites: duração máxima (`MAX_INSTAGRAM_DURATION_SECONDS`, default 3 min) e tamanho (`MAX_FILE_SIZE_MB`)
+
+Stories, perfis e conteúdos privados não são suportados. Prefira o upload de arquivo quando o link falhar.
+
 ## Privacidade
 
-Os arquivos enviados **não são persistidos** após o processamento. Durante a transcrição, o servidor pode gravar cópias temporárias em disco (`/tmp`) para conversão com ffmpeg; esses arquivos são removidos ao final.
+Os arquivos enviados **não são persistidos** após o processamento. Durante a transcrição, o servidor pode gravar cópias temporárias em disco (`/tmp`) para conversão com ffmpeg ou download via yt-dlp; esses arquivos são removidos ao final.
 
 Convites e solicitações de acesso são persistidos em `data/` (JSON).
 
@@ -175,20 +184,22 @@ Ajuste as substituições no `cloudbuild.yaml` conforme seu projeto:
 - `_DEPLOY_REGION` — região do Cloud Run
 - `_SERVICE_NAME` — nome do serviço
 - `_APP_URL` — URL pública do Cloud Run após o primeiro deploy
-- Variáveis sensíveis (`GOOGLE_CLIENT_SECRET`, `OPENAI_API_KEY`, `SESSION_SECRET`) — prefira Secret Manager em produção
+- Variáveis sensíveis (`RESEND_API_KEY`, `RESEND_FROM`, `OPENAI_API_KEY`, `SESSION_SECRET`) — prefira Secret Manager em produção
 
 #### Variáveis obrigatórias no Cloud Run
 
 ```
 ADMIN_EMAIL
-GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_SECRET
 OPENAI_API_KEY
 SESSION_SECRET
 APP_URL
+RESEND_API_KEY
+RESEND_FROM
 ```
 
-> **Importante:** `APP_URL` deve ser a URL pública real do serviço (ex.: `https://echo-web-xxxxx.run.app`) para OAuth e links de convite funcionarem.
+`ALLOWED_EMAILS` é opcional. Antes do primeiro deploy com magic link, crie os secrets `echo-resend-api-key` e `echo-resend-from` no Secret Manager.
+
+> **Importante:** `APP_URL` deve ser a URL pública real do serviço (ex.: `https://echo-web-xxxxx.run.app`) para o magic link e os links de convite funcionarem.
 
 #### Persistência de dados
 

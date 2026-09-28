@@ -43,8 +43,27 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   },
   component: RootLayout,
   shellComponent: RootDocument,
+  notFoundComponent: NotFoundPage,
 })
 
+function NotFoundPage() {
+  return (
+    <main className="page-wrap px-4 pb-8 pt-14">
+      <section className="island-shell mx-auto max-w-lg px-6 py-10 text-center sm:px-10">
+        <p className="island-kicker mb-3">404</p>
+        <h1 className="display-title mb-4 text-3xl text-[var(--text)]">
+          Página não encontrada
+        </h1>
+        <p className="mb-8 text-[var(--text-muted)]">
+          Este endereço não existe no Echo.
+        </p>
+        <a href="/" className="echo-button inline-flex">
+          Voltar ao início
+        </a>
+      </section>
+    </main>
+  )
+}
 function RootLayout() {
   const { session } = Route.useRouteContext()
 

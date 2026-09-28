@@ -1,9 +1,30 @@
+import { isAdminEmail, isEmailAllowed } from '#/lib/auth/allowlist'
+import type { SessionData } from '#/lib/auth/session'
+import { getActiveSession } from '#/lib/auth/session'
+import { env } from '#/lib/env'
+import { errors } from '#/lib/errors'
 import {
   getInvitationByToken,
   isInvitationValid,
 } from '#/lib/storage/invitations'
-import type { SessionData } from '#/lib/auth/session'
-import { errors } from '#/lib/errors'
+
+export function resolveSession(
+  data: Partial<SessionData> | null | undefined,
+): SessionData | null {
+  const session = getActiveSession(data)
+  if (!session?.email) {
+    return session?.inviteToken ? session : null
+  }
+
+  if (!isEmailAllowed(session.email)) return null
+
+  return {
+    email: session.email,
+    name: session.name,
+    picture: session.picture,
+    isAdmin: isAdminEmail(session.email),
+  }
+}
 
 export async function resolveInviteToken(
   inviteToken: string | undefined,
@@ -36,8 +57,24 @@ export async function assertUploadAccess(session: SessionData | null): Promise<{
     throw errors.unauthorized()
   }
 
-  if (session.isAdmin) {
-    return { session, maxFilesPerUpload: Number.MAX_SAFE_INTEGER }
+  if (session.email) {
+    if (!isEmailAllowed(session.email)) {
+      throw errors.unauthorized()
+    }
+
+    const refreshed: SessionData = {
+      email: session.email,
+      name: session.name,
+      picture: session.picture,
+      isAdmin: isAdminEmail(session.email),
+    }
+
+    return {
+      session: refreshed,
+      maxFilesPerUpload: refreshed.isAdmin
+        ? Number.MAX_SAFE_INTEGER
+        : env.MAX_FILES_PER_UPLOAD,
+    }
   }
 
   if (!session.inviteToken) {
